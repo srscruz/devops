@@ -7,37 +7,56 @@
 
   File { owner => 0, group => 0, mode => 0644 }
 
+  # Faz o Update do S.O
   class {'apt':
     always_apt_update => true,
     require   =>  Exec['repo-juju']
   }
 
+  # Add Repositorio de Pacotes do JuJu
   exec { 'repo-juju':
     command   =>  'add-apt-repository ppa:juju/stable',
     path      => [ '/bin/', '/sbin/', '/usr/bin/', '/usr/sbin/']
   }
 
+  # Copia Chaves do Usuario para o root
   exec  { 'copy-keys':
     command   =>  'cp -pR /home/vagrant/.ssh /root/',
     require   =>  Package['build-essential', 'vim', 'curl', 'git-core', 'juju-local', 'linux-image-generic-lts-raring', 'linux-headers-generic-lts-raring']
   }
 
+  # Iniciar Juju
   exec  { 'juju-init':
     command   =>  "sudo su -c \"juju init\"",
     path      => [ '/bin/', '/sbin/', '/usr/bin/', '/usr/sbin/'],
     require   =>  Class['apt']
   }
 
+  # Altera para Environment Local
   exec  { 'juju-switch-local':
     command   => "sudo su -c \"juju switch local\"",
     path      => [ '/bin/', '/sbin/', '/usr/bin/', '/usr/sbin/'],
     require   => Exec['juju-init']
   }
 
+  # Faz o bootstrap do JujU
   exec  { 'juju-bootstrap':
     command   => "sudo su -c \"juju bootstrap\"",
     path      => [ '/bin/', '/sbin/', '/usr/bin/', '/usr/sbin/'],
     require   => Exec['juju-switch-local']
+  }
+
+  # Carrega Modulo da App no Kernel
+  exec  { 'apparmor_parser':
+    command   =>  "sudo su -c \"apparmor_parser -R /etc/apparmor.d/usr.bin.lxc-start\" && sudo su -c \"ln -s /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable \"",
+    path      =>  [ '/bin/', '/sbin/', '/usr/bin/', '/usr/sbin/'],
+    require   =>  Exec['juju-switch-local', 'disable-firewall']
+  }
+
+  # Disable Firewall
+  exec  { 'disable-firewall':
+    command   =>  "sudo su -c \"ufw disable\"",
+    path      =>  [ '/bin/', '/sbin/', '/usr/bin/', '/usr/sbin/'],
   }
 
   file { '/root/.ssh/id_rsa':
