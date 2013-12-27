@@ -1,7 +1,31 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "quantal64"
+  
   config.vm.provider :lxc do |lxc|
     # Same effect as 'customize ["modifyvm", :id, "--memory", "1024"]' for VirtualBox
-    lxc.customize 'cgroup.memory.limit_in_bytes', '1024M'
+    lxc.customize 'cgroup.memory.limit_in_bytes', '512M'
+    lxc.customize 'cgroup.cpu.shares', '512'
+    lxc.customize 'cgroup.cpuset.cpus', '4'
   end
+
+  config.vm.provision :shell, :inline =>
+    "if [[ ! -f /apt-get-run ]]; then sudo apt-get update && sudo touch /apt-get-run && apt-get -y install python-software-properties && mkdir -p /root/.ssh && chmod 0700 /root/.ssh; fi"
+
+  config.vm.share_folder ".ssh", "/home/vagrant/.ssh", "~/.ssh"
+
+  # definindo configurações do puppet
+  config.vm.provision :puppet do |puppet|
+    # pasta onde fica seus manifests
+    puppet.manifests_path = "manifests"
+
+    # arquivo manifest que você quer que seja chamado de começo
+    puppet.manifest_file  = "devops.pp"
+
+    # pasta onde ficam os modulos do puppet
+    puppet.module_path = "./modules"
+
+    # melhor logging do puppet na execução do vagrant, é bom pra debugar coisas
+    puppet.options = "--verbose"
+  end
+
 end
