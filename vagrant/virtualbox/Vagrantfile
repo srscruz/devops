@@ -5,29 +5,28 @@ Vagrant::Config.run do |config|
   config.vm.box = "devops"
   config.vm.box_url = "http://files.vagrantup.com/precise64.box"
 
-  # definimos um ip para essa máquina (usando NAT aqui).
+  # Defined IP address using NAT.
   config.vm.network :hostonly, "10.11.12.13"
   # config.vm.network :bridged
 
-  # Garante que o apt-get update é rodado antes das configurações do puppet
-  # tive que fazer isso, outra vez por conta do dns não aparecer para o Puppet
+  # Ensures that apt-get is updated before settings puppet
+  # Was necessary to make this change to display the DNS Puppet
   config.vm.provision :shell, :inline =>
     "if [[ ! -f /apt-get-run ]]; then sudo apt-get update && sudo touch /apt-get-run && apt-get -y install python-software-properties && mkdir -p /root/.ssh && chmod 0700 /root/.ssh; fi"
 
   config.vm.share_folder ".ssh", "/home/vagrant/.ssh", "~/.ssh"
 
-  # definindo configurações do puppet
+  # Defining settings puppet
   config.vm.provision :puppet do |puppet|
-    # pasta onde fica seus manifests
+    # Folder location of Manifests
     puppet.manifests_path = "manifests"
 
-    # arquivo manifest que você quer que seja chamado de começo
+    # Manifest file that you want to be called early
     puppet.manifest_file  = "devops.pp"
 
-    # pasta onde ficam os modulos do puppet
+    # Folder where the module is located in the puppet
     puppet.module_path = "./modules"
 
-    # melhor logging do puppet na execução do vagrant, é bom pra debugar coisas
     puppet.options = "--verbose"
   end
 end
